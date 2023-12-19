@@ -79,7 +79,9 @@ function App() {
 
   function deleteCartItem(productId) {
     setCart((prevCart) =>
-      prevCart.filter((cartItem) => cartItem.id !== productId)
+      prevCart.filter((cartItem) => {
+        return cartItem.id !== productId;
+      })
     );
     console.log("deleteCartItem", "after filter", cart);
   }
@@ -103,7 +105,11 @@ function App() {
       <hr />
 
       <section className="cart">
-        <h1 className="cart-heading">Cart (Total Price is {cartTotal} Baht)</h1>
+        <h1 className="cart-heading">
+          {cartTotal === 0
+            ? "You have nothing in your cart :("
+            : `Cart (Total Price is ${cartTotal} Baht)`}
+        </h1>
         <div className="cart-item-list">
           {cart.map((cartItemData) => {
             // Error: undefined after adding or removing
