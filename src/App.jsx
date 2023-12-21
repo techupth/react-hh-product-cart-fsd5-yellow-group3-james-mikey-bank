@@ -5,7 +5,7 @@ import productsData from "./data/products";
 import CartItem from "./components/CartItem";
 
 function App() {
-  const [cart, setCart] = useState([]);
+  const [cart, setCart] = useState({});
   console.log("App:", cart);
   const [cartTotal, setCartTotal] = useState(0);
   console.log("App", cartTotal);
@@ -16,61 +16,58 @@ function App() {
 
   function handleAddToCart(productId) {
     setCart((prevCart) => {
-      const newItem = {
-        id: productId,
-        price: productsData[productId - 1].price,
-        name: productsData[productId - 1].name,
-        quantity: 1,
-      };
-      if (prevCart.some((cartItem) => cartItem.id === productId)) {
-        return prevCart.map((cartItem) => {
-          if (cartItem.id === productId) {
-            return {
-              ...cartItem,
-              quantity: cartItem.quantity + 1,
-            };
-          }
-          return cartItem;
-        });
-        // add a new cart item if product has never been added.
+      if (prevCart[productId]) {
+        return {
+          ...prevCart,
+          [productId]: {
+            ...prevCart[productId],
+            quantity: prevCart[productId].quantity + 1,
+          },
+        };
       } else {
-        return [...prevCart, newItem];
+        return {
+          ...prevCart,
+          [productId]: {
+            id: productId,
+            price: productsData[productId - 1].price,
+            name: productsData[productId - 1].name,
+            quantity: 1,
+          },
+        };
       }
     });
   }
 
   function handleQuantityChange(productId, action) {
     setCart((prevCart) => {
-      console.log("Before mapping", prevCart);
-      // Error: suspected perp.
-      const nextCart = prevCart.map((cartItem) => {
-        console.log("handleQuantityChange", cartItem);
-        if (cartItem.id === productId) {
-          if (action === "add") {
-            return {
-              ...cartItem,
-              quantity: cartItem.quantity + 1,
-            };
-          } else if (action === "remove") {
-            if (cartItem.quantity === 1) {
-              deleteCartItem(productId);
-            }
-            return {
-              ...cartItem,
-              quantity: cartItem.quantity - 1,
-            };
+      if (prevCart[productId]) {
+        if (action === "add") {
+          return {
+            ...prevCart,
+            [productId]: {
+              ...prevCart[productId],
+              quantity: prevCart[productId].quantity + 1,
+            },
+          };
+        } else if (action === "remove") {
+          if (prevCart[productId].quantity === 1) {
+            deleteCartItem(productId);
           }
+          return {
+            ...prevCart,
+            [productId]: {
+              ...prevCart[productId],
+              quantity: prevCart[productId].quantity - 1,
+            },
+          };
         }
-        // return all other CartItem(s) without changes
-        return { ...cartItem };
-      });
-      console.log("After mapping", nextCart);
-      return nextCart;
+      }
+      return prevCart;
     });
   }
 
   function calculateCartTotal() {
-    const cartTotal = cart.reduce((acc, cartItem) => {
+    const cartTotal = Object.values(cart).reduce((acc, cartItem) => {
       acc += cartItem.price * cartItem.quantity;
       return acc;
     }, 0);
@@ -78,16 +75,36 @@ function App() {
   }
 
   function deleteCartItem(productId) {
-    setCart((prevCart) =>
-      prevCart.filter((cartItem) => {
-        return cartItem.id !== productId;
-      })
-    );
-    console.log("deleteCartItem", "after filter", cart);
+    setCart((prevCart) => {
+      const newCart = { ...prevCart };
+      delete newCart[productId];
+      return newCart;
+    });
   }
 
+  const cartItems = Object.values(cart).map((cartItemData) => {
+    const { id, name, quantity, price } = cartItemData;
+    return (
+      <CartItem
+        id={id}
+        key={id}
+        name={name}
+        quantity={quantity}
+        price={price}
+        handleQuantityChange={handleQuantityChange}
+        handleDeletion={deleteCartItem}
+      />
+    );
+  });
+
   return (
-    <div className="App">
+    <div
+      className="App"
+      style={{
+        fontFamily: "sans-serif",
+        fontSize: "16px",
+      }}
+    >
       <section className="product-container">
         <h1 className="product-heading">Products</h1>
         <div className="product-list">
@@ -110,24 +127,7 @@ function App() {
             ? "You have nothing in your cart :("
             : `Cart (Total Price is ${cartTotal} Baht)`}
         </h1>
-        <div className="cart-item-list">
-          {cart.map((cartItemData) => {
-            // Error: undefined after adding or removing
-            console.log("Mapping cart item", cartItemData);
-            const { id, name, quantity, price } = cartItemData;
-            return (
-              <CartItem
-                id={id}
-                key={id}
-                name={name}
-                quantity={quantity}
-                price={price}
-                handleQuantityChange={handleQuantityChange}
-                handleDeletion={deleteCartItem}
-              />
-            );
-          })}
-        </div>
+        <div className="cart-item-list">{cartItems}</div>
       </section>
     </div>
   );
